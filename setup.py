@@ -7,7 +7,7 @@ VER = "0.0.1"
 reqs = ["numpy",
         "h5py",
         'LarpixParser @ git+https://github.com/DanielMDouglas/larpix_readout_parser.git',
-        "pytorch",
+        "torch",
         "MinkowskiEngine"]
 
 setuptools.setup(
