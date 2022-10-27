@@ -91,10 +91,10 @@ if __name__ == '__main__':
                         default = 0,
                         help = "geometry layout pickle file")
     parser.add_argument('-p', '--pixelfile', type = str,
-                        default = "../../larpix_readout_parser/config_repo/multi_tile_layout-3.0.40.yaml",
+                        default = "../config/multi_tile_layout-3.0.40.yaml",
                         help = "pixel layout yaml file")
     parser.add_argument('-d', '--detprop', type = str,
-                        default = "../../larpix_readout_parser/config_repo/ndlar-module.yaml",
+                        default = "../config/ndlar-module.yaml",
                         help = "detector properties yaml file")
 
     args = parser.parse_args()
