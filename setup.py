@@ -6,8 +6,9 @@ VER = "0.0.1"
 
 reqs = ["numpy",
         "h5py",
-        "fire",
-        'LarpixParser @ git+https://github.com/DanielMDouglas/larpix_readout_parser.git']
+        'LarpixParser @ git+https://github.com/DanielMDouglas/larpix_readout_parser.git',
+        "pytorch",
+        "MinkowskiEngine"]
 
 setuptools.setup(
     name="NDLArForward",
