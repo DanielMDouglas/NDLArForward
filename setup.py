@@ -5,6 +5,9 @@ import setuptools
 VER = "0.0.1"
 
 reqs = ["numpy",
+        "larcv",
+        "plotly",
+        "pyaml",
         "h5py",
         'LarpixParser @ git+https://github.com/DanielMDouglas/larpix_readout_parser.git',
         "torch",
