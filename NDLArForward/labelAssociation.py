@@ -99,8 +99,8 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    # "/home/dan/studies/NDLArForwardME/train.root"
-    parser.add_argument('infile', type = str,
+    parser.add_argument('-i', '--infile', type = str,
+                        default = "/home/dan/studies/NDLArForwardME/train.root",
                         help = "input  file")
 
     args = parser.parse_args()
