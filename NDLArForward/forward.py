@@ -64,8 +64,8 @@ def load_hits(filename, event_id, configs, device):
     coords, feats = ME.utils.sparse_collate(feats = [torch.FloatTensor(dQ).to(device)],
                                             coords = [torch.FloatTensor([x, y, z]).to(device)])
 
-    return MD.SparseTensor(feats, coordinates=coords)
-                                                     
+    return ME.SparseTensor(feats, coordinates=coords)
+
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
