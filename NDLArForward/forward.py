@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import MinkowskiEngine as ME
+import h5py
+import detector
+import numpy as np
 
 from LarpixParser import event_parser as EvtParser
 from LarpixParser import hit_parser as HitParser
@@ -61,15 +64,21 @@ def load_hits(filename, event_id, configs, device):
         
     x,y,z,dQ = HitParser.hit_parser_charge(t0, packets_ev, geom_dict, run_config)
 
-    coords, feats = ME.utils.sparse_collate(feats = [torch.FloatTensor(dQ).to(device)],
-                                            coords = [torch.FloatTensor([x, y, z]).to(device)])
+    coords = torch.FloatTensor([x, y, z]).T
+    feats = torch.FloatTensor([dQ]).T
 
-    return ME.SparseTensor(feats, coordinates=coords)
+    coords, feats = ME.utils.sparse_collate(feats = [feats.to(device)],
+                                            coords = [coords.to(device)])
 
+    return ME.SparseTensor(feats, 
+                           coordinates = coords, 
+                           device = device)
+                                                     
+>>>>>>> b833355d455c6adc32db724a072f886c67bc1ac5
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    net = ExampleNetwork(in_feat=1, out_feat=5, D=2).to(device)
+    net = ExampleNetwork(in_feat=1, out_feat=2, D=3).to(device)
     #print(net)
 
     data=load_hits(args.infile,

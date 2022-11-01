@@ -9,7 +9,7 @@ reqs = ["numpy",
         "plotly",
         "pyaml",
         "h5py",
-        'LarpixParser @ git+https://github.com/DanielMDouglas/larpix_readout_parser.git',
+        'LarpixParser @ git+https://github.com/YifanC/larpix_readout_parser@develop',
         "torch",
         "MinkowskiEngine"]
 
