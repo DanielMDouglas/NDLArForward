@@ -25,8 +25,9 @@ def main(args):
 
     if args.checkpoint:
         with open(args.checkpoint, 'rb') as f:
-            checkpoint = torch.load(f)
-            net.load_state_dict(checkpoint['model'], strict=False)
+            checkpoint = torch.load(f, map_location=device)
+            net.load_state_dict(checkpoint['model'],
+                                strict=False)
 
     loss, acc = train(net, args.infile, plotDir = args.plots)
 

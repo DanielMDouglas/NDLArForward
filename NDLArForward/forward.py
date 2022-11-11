@@ -74,7 +74,6 @@ def load_hits(filename, event_id, configs, device):
                            coordinates = coords, 
                            device = device)
                                                      
->>>>>>> b833355d455c6adc32db724a072f886c67bc1ac5
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
