@@ -17,13 +17,27 @@ from network import ExampleNetwork
 from SingleParticleDataAccess import LABELS, load_batch
 
 import tqdm
+
+import yaml
+import os
             
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    net = ExampleNetwork(in_feat=1, out_feat=5, D=3, manifestFile = args.manifest).to(device)
+    with open(args.manifest) as mf:
+        manifest = yaml.load(mf, Loader = yaml.FullLoader)
 
-    # if args.f, remove previous checkpoints
+    net = ExampleNetwork(in_feat=1, out_feat=5, D=3, manifest = manifest).to(device)
+
+    if args.force:
+        # remove previous checkpoints
+        for oldCheckpoint in os.listdir(os.path.join(manifest['outdir'],
+                                                     'checkpoints')):
+            print ('removing ', oldCheckpoint)
+            os.remove(os.path.join(manifest['outdir'],
+                                   'checkpoints',
+                                   oldCheckpoint))
+
 
     loss, acc = net.train()
 

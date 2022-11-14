@@ -21,16 +21,24 @@ import os
 
 class ExampleNetwork(ME.MinkowskiNetwork):
 
-    def __init__(self, in_feat, out_feat, D, manifestFile):
+    def __init__(self, in_feat, out_feat, D, manifest):
         super(ExampleNetwork, self).__init__(D)
-        
-        with open(manifestFile) as mf:
-            self.manifest = yaml.load(mf, Loader = yaml.FullLoader)
+
+        self.manifest = manifest
 
         self.outDir = self.manifest['outdir']
         self.make_output_tree()
 
         # if there's a checkpoint load it
+        if 'checkpoints' in self.manifest:
+            latestCheckpoint = self.manifest['checkpoints'][-1]
+            self.load_checkpoint(latestCheckpoint)
+            self.n_epoch = int(latestCheckpoint.split('_')[-2])
+            self.n_iter = int(latestCheckpoint.split('_')[-1].split('.')[0])
+            print ("resuming training at epoch {}, iteration {}".format(self.n_epoch, self.n_iter))
+        else:
+            self.n_epoch = 0
+            self.n_iter = 0
 
         self.conv1 = nn.Sequential(
             # ME.MinkowskiReLU(),
@@ -305,20 +313,22 @@ class ExampleNetwork(ME.MinkowskiNetwork):
 
         nEpochs = int(self.manifest['nEpochs'])
         batchesPerEpoch = 400000//BATCH_SIZE
-        n_iter = 0
-        n_epoch = 0
-
+       
         report = False
         prevRemainder = 0
     
         lossHist = []
         accHist = []
         for i in tqdm.tqdm(range(nEpochs)):
-            for (labelsPDG, 
-                 coords, 
-                 features) in tqdm.tqdm(load_batch(self.manifest['trainfile'],
-                                                   n_iter = batchesPerEpoch),
-                                        total = batchesPerEpoch):
+            if i < self.n_epoch:
+                continue
+            for j, (labelsPDG, 
+                    coords, 
+                    features) in tqdm.tqdm(enumerate(load_batch(self.manifest['trainfile'],
+                                                                n_iter = batchesPerEpoch)),
+                                           total = batchesPerEpoch):
+                if j < self.n_iter:
+                    continue
 
                 labels = torch.Tensor([LABELS.index(l) for l in labelsPDG]).to(device)
                 data = ME.SparseTensor(torch.FloatTensor(features).to(device),
@@ -343,19 +353,22 @@ class ExampleNetwork(ME.MinkowskiNetwork):
                 loss.backward()
                 optimizer.step()
         
-                n_iter += 1
+                self.n_iter += 1
 
                 # save a checkpoint of the model every 10% of an epoch
-                remainder = (n_iter/batchesPerEpoch)%0.1
+                remainder = (self.n_iter/batchesPerEpoch)%0.1
                 if remainder < prevRemainder:
                     try:
                         checkpointFile = os.path.join(self.outDir,
                                                       'checkpoints',
-                                                      'checkpoint_'+str(i)+'_'+str(n_iter)+'.ckpt')
+                                                      'checkpoint_'+str(self.n_epoch)+'_'+str(self.n_iter)+'.ckpt')
                         self.make_checkpoint(checkpointFile)
                     except AttributeError:
                         pass
                 prevRemainder = remainder
+            
+            self.n_epoch += 1
+            senf.n_iter = 0
 
             lossHist.append(float(loss))
         
