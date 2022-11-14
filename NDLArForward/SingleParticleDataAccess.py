@@ -10,6 +10,8 @@ software_dir = 'lartpc_mlreco3d'
 sys.path.insert(0,software_dir)
 
 LABELS = [11,22,13,211,2212]
+BATCH_SIZE = 2560
+
 def get_labels(parts):
     pdg = 0
     results=[]
@@ -30,15 +32,16 @@ def get_labels(parts):
         results.append(pdg)
     return np.array(results)
 
-def load_batch(data_file, n_iter):
+def load_batch(data_file, n_iter = None):
     cfg_dict = {"iotool":
-                {"batch_size": 10,
+                {"batch_size": BATCH_SIZE,
                  "shuffle": False,
-                 "num_workers": 1,
+                 "num_workers": 2,
                  "collate_fn": "CollateSparse",
                  "sampler":
                  {"name": "RandomSequenceSampler",
-                  "seed": 12},
+                  # "seed": 12,
+                  },
                  "dataset":
                  {"name": "LArCVDataset",
                   "data_keys": [data_file],
@@ -64,8 +67,9 @@ def load_batch(data_file, n_iter):
 
     for batch in hs.data_io_iter:
 
-        if iter > n_iter:
-            break
+        if n_iter:
+            if iter > n_iter:
+                break
         
         labels = get_labels(batch['particle'])
         coords = batch['data'][:,0:4]
