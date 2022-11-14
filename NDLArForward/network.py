@@ -24,12 +24,14 @@ class ExampleNetwork(ME.MinkowskiNetwork):
     def __init__(self, in_feat, out_feat, D, manifest):
         super(ExampleNetwork, self).__init__(D)
 
+        # save the manifest dict internally
         self.manifest = manifest
 
+        # make the output data structure
         self.outDir = self.manifest['outdir']
         self.make_output_tree()
 
-        # if there's a checkpoint load it
+        # if there's a previous checkpoint, start there
         if 'checkpoints' in self.manifest:
             latestCheckpoint = self.manifest['checkpoints'][-1]
             self.load_checkpoint(latestCheckpoint)
@@ -40,214 +42,45 @@ class ExampleNetwork(ME.MinkowskiNetwork):
             self.n_epoch = 0
             self.n_iter = 0
 
-        self.conv1 = nn.Sequential(
-            # ME.MinkowskiReLU(),
-            ME.MinkowskiConvolution(
-                in_channels=in_feat,
-                out_channels=32,
-                kernel_size=3,
-                stride=1,
-                dilation=1,
-                bias=False,
-                dimension=D),
-            ME.MinkowskiBatchNorm(32),
-            ME.MinkowskiReLU())
-        self.conv2 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=32,
-                out_channels=32,
-                kernel_size=3,
-                stride=1,
-                dimension=D),
-            ME.MinkowskiBatchNorm(32),
-            ME.MinkowskiReLU())
-        self.conv3 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=32,
-                out_channels=32,
-                kernel_size=3,
-                stride=1,
-                dimension=D),
-            ME.MinkowskiBatchNorm(32),
-            ME.MinkowskiReLU())
-        self.mp1 = nn.Sequential(
-            ME.MinkowskiMaxPooling(
-                kernel_size = 2,
-                stride = 2,
-                dimension = D),
-            )
-        self.conv4 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=32,
-                out_channels=64,
-                kernel_size=3,
-                stride=1,
-                dimension=D),
-            ME.MinkowskiBatchNorm(64),
-            ME.MinkowskiReLU())
-        self.conv5 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=3,
-                dimension=D),
-            ME.MinkowskiBatchNorm(64),
-            ME.MinkowskiReLU())
-        self.conv6 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=3,
-                dimension=D),
-            ME.MinkowskiBatchNorm(64),
-            ME.MinkowskiReLU())
+        # load layer structure from the manifest
+        self.layers = []
+        layer_in_feat = in_feat
+        for layer in self.manifest['layers']:
+            if layer['type'] == 'MConvolution':
+                layer_out_feat = int(layer['out_feat'])
+                self.layers.append(ME.MinkowskiConvolution(
+                    in_channels = layer_in_feat,
+                    out_channels = layer_out_feat,
+                    kernel_size = int(layer['kernel_size']),
+                    stride = int(layer['stride']),
+                    bias = False,
+                    dimension = D
+                ))
+                layer_in_feat = layer_out_feat
+            elif layer['type'] == 'MReLU':
+                self.layers.append(ME.MinkowskiReLU())
+            elif layer['type'] == 'MBatchNorm':
+                self.layers.append(ME.MinkowskiBatchNorm(layer_out_feat))
+            elif layer['type'] == 'MMaxPooling':
+                self.layers.append(ME.MinkowskiMaxPooling(
+                    kernel_size = int(layer['kernel_size']),
+                    stride = int(layer['stride']),
+                    dimension = D
+                ))
+            elif layer['type'] == 'MLinear':
+                layer_out_feat = int(layer['out_feat'])
+                self.layers.append(ME.MinkowskiLinear(
+                    layer_in_feat,
+                    layer_out_feat
+                ))
+                layer_in_feat = layer_out_feat
+            elif layer['type'] == 'MGlobalPooling':
+                self.layers.append(ME.MinkowskiGlobalPooling())
 
-        self.mp2 = nn.Sequential(
-            ME.MinkowskiMaxPooling(
-                kernel_size = 2,
-                stride = 1,
-                dimension = D),
-            )
-        self.conv7 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=3,
-                dimension=D),
-            ME.MinkowskiBatchNorm(64),
-            ME.MinkowskiReLU())
-        self.conv8 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=3,
-                dimension=D),
-            ME.MinkowskiBatchNorm(64),
-            ME.MinkowskiReLU())
-        self.conv9 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=1,
-                dimension=D),
-            ME.MinkowskiBatchNorm(64),
-            ME.MinkowskiReLU())
-
-        self.mp3 = nn.Sequential(
-            ME.MinkowskiMaxPooling(
-                kernel_size = 2,
-                stride = 1,
-                dimension = D),
-            )
-        self.conv10 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=1,
-                dimension=D),
-            ME.MinkowskiBatchNorm(64),
-            ME.MinkowskiReLU())
-        self.conv11 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=1,
-                dimension=D),
-            ME.MinkowskiBatchNorm(64),
-            ME.MinkowskiReLU())
-        self.conv12 = nn.Sequential(
-            ME.MinkowskiConvolution(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=3,
-                stride=1,
-                dimension=D),
-            ME.MinkowskiBatchNorm(64),
-            ME.MinkowskiReLU())
-        # self.mp3 = nn.Sequential(
-        #     ME.MinkowskiMaxPooling(
-        #         kernel_size = 512,
-        #         stride = 512,
-        #         dimension = D),
-        #     )
-
-        # nn.Sequential([stuff])
-
-        self.mlp1 = nn.Sequential(
-            ME.MinkowskiLinear(
-                64, 256),
-            ME.MinkowskiReLU(),
-            ME.MinkowskiBatchNorm(256),
-            )
-        self.mlp2 = nn.Sequential(
-            ME.MinkowskiLinear(
-                256, 256),
-            ME.MinkowskiReLU(),
-            ME.MinkowskiBatchNorm(256),
-            )
-        self.mlp3 = nn.Sequential(
-            ME.MinkowskiLinear(
-                256, out_feat),
-            ME.MinkowskiBatchNorm(out_feat),
-            )
-        # self.softmax = nn.Sequential(
-        #     nn.LogSoftmax(
-        #         dim = D)
-        #     )
-        self.pooling = ME.MinkowskiGlobalPooling() # equiv to maxpool 512, remove spatial dimension
-        # self.linear = ME.MinkowskiLinear(128, out_feat)
-        # self.linear = ME.MinkowskiLinear(1, out_feat)
-
+        self.network = nn.Sequential(*self.layers)
+            
     def forward(self, x):
-        # print(x.shape)
-        out = self.conv1(x)
-        # print(out.shape)
-        out = self.conv2(out)
-        out = self.conv3(out)
-
-        # print(out.shape)
-        out = self.mp1(out)
-        # print(out.shape)
-        out = self.conv4(out)
-        out = self.conv5(out)
-        # print(out.shape)
-        out = self.conv6(out)
-
-        # print(out.shape)
-        out = self.mp2(out)
-        # print(out.shape)
-        out = self.conv7(out)
-        out = self.conv8(out)
-        # print(out.shape)
-        out = self.conv9(out)
-
-        # print(out.shape)
-        out = self.mp3(out)
-        # print(out.shape)
-        out = self.conv10(out)
-        # print(out.shape)
-        out = self.conv11(out)
-        out = self.conv12(out)
-
-        # out = self.mp2(out)
-        # print(out.shape)
-        out = self.pooling(out)
-        # print(out.shape)
-        out = self.mlp1(out)
-        # print(out.shape)
-        out = self.mlp2(out)
-        # print(out.shape)
-        out = self.mlp3(out)
-        
-        # print(out.shape)
-        return out
+        return self.network(x)
 
     def make_checkpoint(self, filename):
         print ("saving checkpoint ", filename)
@@ -304,8 +137,10 @@ class ExampleNetwork(ME.MinkowskiNetwork):
         plt.savefig(os.path.join(plotDir,
                                  'lossAcc.png'))
 
-
     def train(self):
+        """
+        page through a training file, do forward calculation, evaluate loss, and backpropagate
+        """
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         criterion = nn.CrossEntropyLoss()
@@ -317,8 +152,6 @@ class ExampleNetwork(ME.MinkowskiNetwork):
         report = False
         prevRemainder = 0
     
-        lossHist = []
-        accHist = []
         for i in tqdm.tqdm(range(nEpochs)):
             if i < self.n_epoch:
                 continue
@@ -368,7 +201,53 @@ class ExampleNetwork(ME.MinkowskiNetwork):
                 prevRemainder = remainder
             
             self.n_epoch += 1
-            senf.n_iter = 0
+            self.n_iter = 0
+
+        return lossHist, accHist
+
+    def evaluate(self):
+        """
+        page through a test file, do forward calculation, evaluate loss and accuracy metrics
+        do not update the model!
+        """
+
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        # batchesPerEpoch = 400000//BATCH_SIZE
+        evalBatches = 50
+       
+        report = False
+        
+        criterion = nn.CrossEntropyLoss()
+
+        lossList = []
+        accList = []
+        for (labelsPDG, 
+             coords, 
+             features) in tqdm.tqdm(load_batch(self.manifest['testfile'],
+                                               n_iter = evalBatches),
+                                    total = batchesPerEpoch):
+            
+            labels = torch.Tensor([LABELS.index(l) for l in labelsPDG]).to(device)
+            data = ME.SparseTensor(torch.FloatTensor(features).to(device),
+                                   coordinates=torch.FloatTensor(coords).to(device))
+
+            if report:
+                with profile(activities=[ProfilerActivity.CUDA],
+                             profile_memory = True,
+                             record_shapes = True) as prof:
+                    with record_function("model_inference"):
+                        outputs = self(data)
+
+                print(prof.key_averages().table(sort_by="self_cuda_time_total", 
+                                                row_limit = 10))
+                    
+            else:
+                outputs = self(data)
+
+            loss = criterion(outputs.F.squeeze(), labels.long())
+            
+            self.n_iter += 1
 
             lossHist.append(float(loss))
         

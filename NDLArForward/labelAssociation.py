@@ -47,7 +47,7 @@ def main(args):
     
     if args.output:
         checkpointFile = os.path.join(network.outDir,
-                                      'checkpoint_final.ckpt')
+                                      'checkpoint_final_{}_{}.ckpt'.format(manifest['nEpochs'], 0))
         net.make_checkpoint(checkpointFile)
 
 if __name__ == '__main__':
