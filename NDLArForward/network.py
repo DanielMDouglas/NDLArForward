@@ -203,8 +203,6 @@ class ExampleNetwork(ME.MinkowskiNetwork):
             self.n_epoch += 1
             self.n_iter = 0
 
-        return lossHist, accHist
-
     def evaluate(self):
         """
         page through a test file, do forward calculation, evaluate loss and accuracy metrics
@@ -213,20 +211,22 @@ class ExampleNetwork(ME.MinkowskiNetwork):
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        # batchesPerEpoch = 400000//BATCH_SIZE
         evalBatches = 50
+        # evalBatches = 10
        
-        report = False
+        # report = False
+        report = True
         
         criterion = nn.CrossEntropyLoss()
 
         lossList = []
         accList = []
+
         for (labelsPDG, 
              coords, 
              features) in tqdm.tqdm(load_batch(self.manifest['testfile'],
                                                n_iter = evalBatches),
-                                    total = batchesPerEpoch):
+                                    total = evalBatches):
             
             labels = torch.Tensor([LABELS.index(l) for l in labelsPDG]).to(device)
             data = ME.SparseTensor(torch.FloatTensor(features).to(device),
@@ -241,7 +241,7 @@ class ExampleNetwork(ME.MinkowskiNetwork):
 
                 print(prof.key_averages().table(sort_by="self_cuda_time_total", 
                                                 row_limit = 10))
-                    
+
             else:
                 outputs = self(data)
 
@@ -249,11 +249,11 @@ class ExampleNetwork(ME.MinkowskiNetwork):
             
             self.n_iter += 1
 
-            lossHist.append(float(loss))
+            lossList.append(float(loss))
         
             prediction = torch.argmax(outputs.features, dim = 1)
             accuracy = sum(prediction == labels)/len(prediction)
 
-            accHist.append(float(accuracy))
+            accList.append(float(accuracy))
 
-        return lossHist, accHist
+        return lossList, accList

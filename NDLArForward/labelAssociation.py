@@ -39,16 +39,11 @@ def main(args):
                                    oldCheckpoint))
 
 
-    loss, acc = net.train()
+    net.train()
 
-    if args.plots:
-        net.make_plots(np.array(loss), 
-                       np.array(acc))
-    
-    if args.output:
-        checkpointFile = os.path.join(network.outDir,
-                                      'checkpoint_final_{}_{}.ckpt'.format(manifest['nEpochs'], 0))
-        net.make_checkpoint(checkpointFile)
+    checkpointFile = os.path.join(net.outDir,
+                                  'checkpoint_final_{}_{}.ckpt'.format(manifest['nEpochs'], 0))
+    net.make_checkpoint(checkpointFile)
 
 if __name__ == '__main__':
 

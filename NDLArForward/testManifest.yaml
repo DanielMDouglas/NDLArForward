@@ -3,7 +3,7 @@ testfile: /sdf/group/neutrino/kterao/singlep_uq/data/test.root
 
 outdir: /sdf/home/d/dougl215/studies/NDLArForward/NDLArForward/testOuput
 
-nEpochs: 2
+nEpochs: 10
 
 layers:
 - type: MConvolution
