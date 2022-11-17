@@ -29,18 +29,12 @@ class ExampleNetwork(ME.MinkowskiNetwork):
 
         # make the output data structure
         self.outDir = self.manifest['outdir']
+        self.reportFile = os.path.join(self.manifest['outdir'],
+                                       'train_report.dat')
         self.make_output_tree()
 
-        # if there's a previous checkpoint, start there
-        if 'checkpoints' in self.manifest:
-            latestCheckpoint = self.manifest['checkpoints'][-1]
-            self.load_checkpoint(latestCheckpoint)
-            self.n_epoch = int(latestCheckpoint.split('_')[-2])
-            self.n_iter = int(latestCheckpoint.split('_')[-1].split('.')[0])
-            print ("resuming training at epoch {}, iteration {}".format(self.n_epoch, self.n_iter))
-        else:
-            self.n_epoch = 0
-            self.n_iter = 0
+        self.n_epoch = 0
+        self.n_iter = 0
 
         # load layer structure from the manifest
         self.layers = []
@@ -108,7 +102,17 @@ class ExampleNetwork(ME.MinkowskiNetwork):
                                   "checkpoints"))
             os.mkdir(os.path.join(self.outDir,
                                   "plots"))
-            
+        else:
+            self.manifest['checkpoints'] = []
+            for existingCheckpoint in os.listdir(os.path.join(self.outDir,
+                                                              "checkpoints")):
+                fullPath = os.path.join(self.outDir,
+                                        "checkpoints",
+                                        existingCheckpoint)
+                self.manifest['checkpoints'].append(fullPath)
+            self.manifest['checkpoints'].sort(key = lambda name: int(name.split('_')[-2]) + \
+                                              int(name.split('_')[-1].split('.')[0])*0.001)
+
         with open(os.path.join(self.outDir, 'manifest.yaml'), 'w') as mf:
             yaml.dump(self.manifest, mf)
             
@@ -151,6 +155,14 @@ class ExampleNetwork(ME.MinkowskiNetwork):
        
         report = False
         prevRemainder = 0
+
+        # if there's a previous checkpoint, start there
+        if 'checkpoints' in self.manifest and self.manifest['checkpoints'] != []:
+            latestCheckpoint = self.manifest['checkpoints'][-1]
+            self.load_checkpoint(latestCheckpoint)
+            self.n_epoch = int(latestCheckpoint.split('_')[-2])
+            self.n_iter = int(latestCheckpoint.split('_')[-1].split('.')[0])
+            print ("resuming training at epoch {}, iteration {}".format(self.n_epoch, self.n_iter))
     
         for i in tqdm.tqdm(range(nEpochs)):
             if i < self.n_epoch:
@@ -166,7 +178,6 @@ class ExampleNetwork(ME.MinkowskiNetwork):
                 labels = torch.Tensor([LABELS.index(l) for l in labelsPDG]).to(device)
                 data = ME.SparseTensor(torch.FloatTensor(features).to(device),
                                        coordinates=torch.FloatTensor(coords).to(device))
-
                 optimizer.zero_grad()
 
                 if report:
@@ -196,12 +207,31 @@ class ExampleNetwork(ME.MinkowskiNetwork):
                                                       'checkpoints',
                                                       'checkpoint_'+str(self.n_epoch)+'_'+str(self.n_iter)+'.ckpt')
                         self.make_checkpoint(checkpointFile)
+
+                        prediction = torch.argmax(outputs.features, dim = 1)
+                        accuracy = sum(prediction == labels)/len(prediction)
+
+                        self.training_report(loss, accuracy)
+
+                        device.empty_cache()
                     except AttributeError:
                         pass
                 prevRemainder = remainder
             
             self.n_epoch += 1
             self.n_iter = 0
+
+    def training_report(self, loss, acc):
+        """
+        Add to the running report file at a certain moment in the training process
+        """
+
+        with open(self.reportFile, 'a') as rf:
+            rf.write('{} \t {} \t {} \t {} \n'.format(self.n_epoch, 
+                                                      self.n_iter, 
+                                                      loss, 
+                                                      acc))
+        
 
     def evaluate(self):
         """
@@ -214,8 +244,8 @@ class ExampleNetwork(ME.MinkowskiNetwork):
         evalBatches = 50
         # evalBatches = 10
        
-        # report = False
-        report = True
+        report = False
+        # report = True
         
         criterion = nn.CrossEntropyLoss()
 
@@ -255,5 +285,8 @@ class ExampleNetwork(ME.MinkowskiNetwork):
             accuracy = sum(prediction == labels)/len(prediction)
 
             accList.append(float(accuracy))
+
+            # if not self.n_iter % 10:
+            device.empty_cache()
 
         return lossList, accList

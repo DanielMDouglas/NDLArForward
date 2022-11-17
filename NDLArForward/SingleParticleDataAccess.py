@@ -10,8 +10,8 @@ software_dir = 'lartpc_mlreco3d'
 sys.path.insert(0,software_dir)
 
 LABELS = [11,22,13,211,2212]
-# BATCH_SIZE = 2560 # amp nodes
-BATCH_SIZE = 10 # tur nodes
+BATCH_SIZE = 2560 # amp nodes
+# BATCH_SIZE = 10 # tur nodes
 
 def get_labels(parts):
     pdg = 0
@@ -37,7 +37,8 @@ def load_batch(data_file, n_iter = None):
     cfg_dict = {"iotool":
                 {"batch_size": BATCH_SIZE,
                  "shuffle": False,
-                 "num_workers": 1,
+                 # "num_workers": 1,
+                 "num_workers": 2,
                  "collate_fn": "CollateSparse",
                  "sampler":
                  {"name": "RandomSequenceSampler",

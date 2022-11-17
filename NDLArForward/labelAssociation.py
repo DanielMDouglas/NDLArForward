@@ -37,8 +37,12 @@ def main(args):
             os.remove(os.path.join(manifest['outdir'],
                                    'checkpoints',
                                    oldCheckpoint))
-
-
+        net.manifest['checkpoints'] = []
+        reportFile = os.path.join(manifest['outdir'],
+                                  'train_report.dat')
+        if os.path.exists(reportFile):
+            os.remove(reportFile)
+        
     net.train()
 
     checkpointFile = os.path.join(net.outDir,
